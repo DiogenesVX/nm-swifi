@@ -16,7 +16,7 @@ It was tested on Debian Stable, it might as well run on your version/distributio
 
 
 # Usage
-  just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi
+  just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi)
    
       
 # Screenshot
