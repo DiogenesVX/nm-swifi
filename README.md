@@ -16,7 +16,7 @@ It was tested on Debian Stable, it might as well run on your version/distributio
 
 
 # Usage
-   1. just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi
+  just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi
    
    
    
@@ -24,7 +24,8 @@ It was tested on Debian Stable, it might as well run on your version/distributio
 
 ![Alt text](https://github.com/DiogenesVX/nm-swifi/blob/main/nm-swifi.png)
 
-   3. Make sure you have the following packages installed:
+  
+ Make sure you have the following packages installed:\n
       coreutils
       grep
       sed
@@ -35,4 +36,4 @@ It was tested on Debian Stable, it might as well run on your version/distributio
 
    On Debian you just have to install yad:    
 
-        sudo apt install yad
+       sudo apt install yad
