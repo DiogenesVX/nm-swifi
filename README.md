@@ -33,6 +33,7 @@ It was tested on Debian Stable, it might as well run on your version/distributio
       yad
       network-manager
       libnotify-bin
+      network-manager-gnome (optional, provides nm-connection-editor)
 
    On Debian you just have to install yad:    
 
