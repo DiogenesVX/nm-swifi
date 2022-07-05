@@ -19,13 +19,13 @@ It was tested on Debian Stable, it might as well run on your version/distributio
    1. just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi
 
    3. Make sure you have the following packages installed:
-   1. coreutils
-   2. grep
-   3. sed
-   4. gawk
-   5. yad
-   6. network-manager
-   7. libnotify-bin
+      coreutils
+      grep
+      sed
+      gawk
+      yad
+      network-manager
+      libnotify-bin
 
    On Debian you just have to install yad:    
 
