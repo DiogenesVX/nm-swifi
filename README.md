@@ -18,14 +18,14 @@ It was tested on Debian Stable, it might as well run on your version/distributio
 # Usage
   just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi
    
-   
-   
+      
 # Screenshot
 
 ![Alt text](https://github.com/DiogenesVX/nm-swifi/blob/main/nm-swifi.png)
 
   
- Make sure you have the following packages installed:\n
+ Make sure you have the following packages installed:
+ 
       coreutils
       grep
       sed
