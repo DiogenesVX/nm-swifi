@@ -1,0 +1,117 @@
+#!/bin/bash
+#### nm-swifi is a network utility which provides a simple GUI for basic network operations
+#### Requires: coreutils grep sed gawk yad network-manager libnotify-bin
+#### Optional: network-manager-gnome
+
+# export YAD variables
+export YAD_OPTIONS="--center --buttons-layout=center --text-align=center"
+
+# check if Wi-Fi is enabled:
+if [ $(nmcli radio  wifi) == "disabled" ]; then
+    yad \
+       --title="Enable Wi-Fi" \
+       --button="Enable Wi-Fi":0 \
+       --button="Close":1 \
+       --justify=center \
+       --text="--------------------------------------------\n    Your Wi-Fi is currently disabled\n   please enable Wi-Fi    "
+         if  [ "$?" == 0 ]; then
+             nmcli radio wifi on
+             notify-send --expire-time=17000 "Scanning for available networks. Please wait..."
+             sleep 15 # this delay is needed to properly scan the network
+         else
+             exit 0
+        fi
+fi
+
+notify-send --expire-time=7000 "Scanning for available networks. Please wait..." # waits while scanning the network
+
+# createa  yad list dialog with all available SSIDs
+conSSID=$(yad \
+ --title="Wi-Fi SSIDs (select a network to connect to)" \
+ --text="Connected to: "$(nmcli --field=NAME connection show --active | awk "NR==2") \
+ --button="Connect":0 \
+ --button="Disconnect":1 \
+ --button="Disable Wi-Fi":130  \
+ --button="Edit Connections":3 \
+ --button="Close":2 \
+ --separator=" " \
+ --height=333 \
+ --width=700 \
+ --list \
+ --no-headers \
+ --column=SSID \
+ --column=BARS \
+ --column=SIGNAL \
+ --column=BSSID \
+ --column=SECURITY \
+ --print-column=1 \
+$(nmcli --fields SSID,BARS,SIGNAL,BSSID,SECURITY device wifi | awk '{print $1,$2,$3,$4,$5":"$6}' | sed 's/--:/Free/g'))
+
+# awk '{print $1,$2,$3,$4,$5":"$6}' is needed to combine the last two columns in one, \
+# because if there is more than one argument in the SECURITY column (e.g. WPA1 and WPA2 insead of just one of them) the output is broken
+# sed 's/--:/Free/g' is absolutely needed! it replaces --: with free so the free networks show up in the list,
+# otherwise the output is broken if there is at least one free network in the list
+
+case "$?" in
+    0) #### Connect
+       NMCLI_DEV="nmcli device wifi connect"
+       NMCLI_AUTH="password"
+       conSSID=$(printf $conSSID | tr -d " \t\n\r")  # tr -d " \t\n\r") - removes leading spaces
+       printf "SSID is \"$conSSID\""
+        if \
+            # check if the network has already been saved (in this case no password needed)
+            [[ $(nmcli connection show | grep -w -o "$conSSID" | sed "s/^/\"/;s/$/\"/") == \"$conSSID\" ]] \
+        || \
+            # check if the network is free (so no password prompt needed)
+            [[ $(nmcli --fields SSID,SECURITY device wifi | awk '{print $1,$2":"$3}' | sed 's/--:/Free/g' | grep -w "$conSSID" | awk  '{print $2}' ) == "Free" ]]; \
+        then
+            eval $NMCLI_DEV \"$conSSID\"
+            exit 0
+        fi
+       conPASS=$(yad \
+        --title="Password Authentication" \
+        --hide-text \
+        --text="------------------------------------------------\n Enter the password for $conSSID" \
+        --width=300 \
+        --entry)
+       [ $? == 1 ] && exit 1
+       eval $NMCLI_DEV \"$conSSID\" $NMCLI_AUTH \"$conPASS\"
+       exit 0
+       ;;
+    1) #### Disconnect
+       conSSID=$(nmcli --field=NAME connection show --active | awk "NR==2" | tr -d " \t\n\r")
+       NMCLI_COND="nmcli connection down id"
+       printf "connected SSID is \"$conSSID\""
+       eval $NMCLI_COND \"$conSSID\"
+       exit 0
+       ;;
+    3) #### Edit Connections
+        if [ $(which nm-connection-editor) ]; then
+            nm-connection-editor
+        else
+            yad \
+              --title="Missing Packages" \
+              --text="-----------------------------------------------\n Error: Package 'nm-connection-editor' not found!" \
+              --button=OK:1
+        exit 1
+        fi
+       ;;
+    130) #### Disable Wi-Fi
+       printf "disabling Wi-Fi"
+       nmcli radio wifi off
+       yad \
+        --title="Disable Wi-Fi" \
+        --text="-----------------------------------\n    Wi-Fi has been disabled    " \
+        --button=OK:0
+       exit 0
+       ;;
+    2) #### Close
+       exit 0
+       ;;
+    -1) #### Error
+       printf "An unexpected error has occurred"
+       exit 1
+       ;;
+esac
+
+[ $? == 0 ] && exit 0 || exit 1
