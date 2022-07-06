@@ -29,7 +29,7 @@ fi
 # waits while scanning the network
 notify-send --expire-time=7000 "Scanning for available networks. Please wait..."
 
-# createa  yad list dialog with all available SSIDs
+# create a yad list dialog with all available SSIDs
 conSSID=$(yad \
  --title="Wi-Fi SSIDs (select a network to connect to)" \
  --text=$(\
