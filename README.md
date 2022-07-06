@@ -18,6 +18,7 @@ It was tested on Debian Stable, it might as well run on your version/distributio
   just launch the script the way you like (either with a key combination, or with a .desktop launcher or simply ./nm-swifi)
   
  Make sure you have the following packages installed:
+ 
       coreutils
       grep
       sed
@@ -27,5 +28,6 @@ It was tested on Debian Stable, it might as well run on your version/distributio
       libnotify-bin
       network-manager-gnome (optional, provides nm-connection-editor)
 
-   On Debian XFCE you just have to install yad:    
+   On Debian XFCE you just have to install yad:
+   
        sudo apt install yad
