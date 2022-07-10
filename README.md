@@ -19,13 +19,13 @@ It was tested on Debian Stable, it might as well run on your version/distributio
   
  Make sure you have the following packages installed:
  
-      coreutils
-      grep
       sed
-      gawk
       yad
-      network-manager
+      grep
+      gawk
+      coreutils
       libnotify-bin
+      network-manager
       network-manager-gnome (optional, provides nm-connection-editor)
 
    On Debian XFCE you just have to install yad:
