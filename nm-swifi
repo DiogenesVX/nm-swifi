@@ -1,0 +1,178 @@
+#!/bin/bash
+#### nm-swifi is a network utility which provides a simple GUI for basic network operations
+#### Requires: coreutils grep sed gawk yad network-manager libnotify-bin
+#### Optional: network-manager-gnome
+
+# export variables
+unset TERM
+export IFS=$'"'
+export YAD_OPTIONS="--center --buttons-layout=center --text-align=center"
+# check if Wi-Fi is enabled:
+if [ $(nmcli radio  wifi) == "disabled" ]; then
+    yad \
+       --title="Enable Wi-Fi" \
+       --button="Enable Wi-Fi":0 \
+       --button="Close":1 \
+       --justify=center \
+       --text="--------------------------------------------\n    Your Wi-Fi is currently disabled\n   please enable Wi-Fi    "
+         if  [ "$?" == 0 ]; then
+             nmcli radio wifi on
+             notify-send --expire-time=17000 "Scanning for available networks. Please wait..."
+             sleep 15 # this delay is needed to properly scan the network
+         else
+             exit 0
+        fi
+fi
+
+# checks if hotspot is active
+if [ $(nmcli --field=NAME connection show --active | grep hotspot-swifi) ]; then
+    yad \
+        --title="HotSpot is Active" \
+        --button="Disconnect HotSpot":2 \
+        --button="Close":1 \
+        --justify=center \
+        --text="HotSpot is currently active\n You have to disconnect the HotSpot First"
+        if [ $? = 2 ]; then
+            nmcli con down hotspot-swifi
+            sleep 3
+            continue
+        else
+            exit
+        fi
+fi
+    
+
+# waits while scanning the network
+notify-send --expire-time=7000 "Scanning for available networks. Please wait..." &
+nmcli --fields SSID device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiSSID
+nmcli --fields BARS device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiBARS
+nmcli --fields SIGNAL device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiSIGNAL
+nmcli --fields SECURITY device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiSECURITY
+nmcli --fields BSSID device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiBSSID
+nmcli --fields MODE device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiMODE
+nmcli --fields CHAN device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiCHAN
+nmcli --fields RATE device wifi | sed 's/^/"/;s/$/"/' > /tmp/nmswifiRATE
+# create a yad list dialog with all available SSIDs
+conSSID=$(yad \
+ --title="Wi-Fi SSIDs (select a network to connect to)" \
+ --text=$(\
+  printf \
+  $(if [[ $(nmcli --field=NAME connection show --active) ]]; then \
+    printf "Connected to: "$(nmcli --field=NAME connection show --active | awk "NR==2"); \
+  else \
+    printf "No active connection"; \
+  fi)) \
+ --button="Connect":0 \
+ --button="Disconnect":1 \
+ --button="Disable Wi-Fi":130  \
+ --button="Edit Connections":3 \
+ --button="Quick HotSpot":4 \
+ --button="Close":2 \
+ --height=700 \
+ --list \
+ --separator='' \
+ --no-headers \
+ --column=1 \
+ --column=2 \
+ --column=3 \
+ --column=SSID \
+ --column=BARS \
+ --column=SIGNAL \
+ --column=SECURITY \
+ --column=BSSID \
+ --column=MODE \
+ --column=CHAN \
+ --column=RATE \
+ --column=4 \
+ --column=5 \
+ --column=6 \
+ --column=7 \
+ --column=8 \
+ --print-column=2 \
+$(paste -d" " /tmp/nmswifiSSID /tmp/nmswifiBARS /tmp/nmswifiSIGNAL /tmp/nmswifiSECURITY /tmp/nmswifiBSSID /tmp/nmswifiMODE /tmp/nmswifiCHAN /tmp/nmswifiRATE | sed 's/--/Free/g'))
+
+case "$?" in
+    0) #### Connect
+       NMCLI_DEV="nmcli device wifi connect"
+       NMCLI_AUTH="password"
+       printf "SSID1 is $conSSID"
+        if \
+            # check if the network has already been saved (in this case no password needed)
+            [[ $(nmcli connection show | grep -w -o "$conSSID" | sed "s/^/\"/;s/$/\"/") == \"$conSSID\" ]] \
+        || \
+            # check if the network is free (so no password prompt needed)
+            [[ $(nmcli --fields SSID,SECURITY device wifi | sed 's/--/Free/g' | grep -w "$conSSID" | sed 's/ *$//g' | tail -c5) == "Free" ]]; \
+        then
+            conSSID=$(printf $conSSID | awk '{$1=$1;print}')  # awk '{$1=$1;print}' - removes leading/trailing spaces
+            printf "SSID is \"$conSSID\""
+            eval $NMCLI_DEV \"$conSSID\"
+            exit 0
+        fi
+       conPASS=$(yad \
+        --title="Password Authentication" \
+        --hide-text \
+        --text="------------------------------------------------\n Enter the password for $conSSID" \
+        --width=300 \
+        --entry)
+       [ $? == 1 ] && exit 1
+       conSSID=$(printf $conSSID | awk '{$1=$1;print}')
+       printf "SSID is \"$conSSID\""
+       eval $NMCLI_DEV \"$conSSID\" $NMCLI_AUTH \"$conPASS\"
+       exit 0
+       ;;
+    1) #### Disconnect
+       conSSID=$(nmcli --field=NAME connection show --active | awk "NR==2" | awk '{$1=$1;print}')
+       NMCLI_COND="nmcli connection down id"
+       printf "connected SSID is \"$conSSID\""
+       eval $NMCLI_COND \"$conSSID\"
+       exit 0
+       ;;
+    3) #### Edit Connections
+        if [ $(which nm-connection-editor) ]; then
+            nm-connection-editor
+        else
+            yad \
+              --title="Missing Packages" \
+              --text="-----------------------------------------------\n Error: Package 'nm-connection-editor' not found!" \
+              --button=OK:1
+        exit 1
+        fi
+       ;;
+    4) #### Quick HotSpot
+        if [ $(nmcli connection show | grep -w -o hotspot-swifi) ]; then
+            nmcli con up hotspot-swifi
+            notify-send "Hotspot successfully activated"
+            exit
+         else
+            nmcli \
+            connection add \
+            type wifi con-name hotspot-swifi \
+            autoconnect no \
+            wifi.mode ap \
+            wifi.ssid hotspot-swifi \
+            ipv4.method shared \
+            ipv6.method shared
+            nmcli con up hotspot-swifi
+            notify-send "Hotspot successfully activated"
+            exit
+        fi
+       ;;
+    130) #### Disable Wi-Fi
+       printf "disabling Wi-Fi"
+       nmcli radio wifi off
+       yad \
+        --title="Disable Wi-Fi" \
+        --text="-----------------------------------\n    Wi-Fi has been disabled    " \
+        --button=OK:0
+       exit 0
+       ;;
+    2) #### Close
+       exit 0
+       ;;
+    -1) #### Error
+       printf "An unexpected error has occurred"
+       exit 1
+       ;;
+esac
+
+[ $? == 0 ] && exit 0 || exit 1
