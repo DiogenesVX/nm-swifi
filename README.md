@@ -9,7 +9,8 @@ It was tested on Debian Stable, it might as well run on your version/distributio
    2. Connect/Disconnect to any Wi-Fi network of your choice (unless you know the password :)).
    3. Enable/Disable Wi-Fi.
    4. Edit connections (with nm-connection-editor).
-   5. No root required for anything.
+   5. Create a quick Hotspot (it's going to be a free hotspot with no password so be careful).
+   6. No root required for anything.
 
 # Screenshot
 ![Alt text](https://github.com/DiogenesVX/nm-swifi/blob/main/nm-swifi.png)
